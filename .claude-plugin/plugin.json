@@ -1,6 +1,6 @@
 {
     "name": "terraform-lsp",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "description": "Claude Code plugin for Terraform development with terraform-ls LSP integration, 17 automated hooks for security scanning (trivy, checkov), linting (tflint), formatting, and Terragrunt support",
     "author": {
         "name": "zircote",

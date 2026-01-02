@@ -14,8 +14,10 @@ Run `/setup` to install all required tools, or manually:
 # macOS (Homebrew)
 brew tap hashicorp/tap
 brew install hashicorp/tap/terraform hashicorp/tap/terraform-ls \
-             tflint tfsec checkov terraform-docs infracost terragrunt
+             tflint trivy checkov terraform-docs infracost terragrunt
 ```
+
+Run `/validate` to verify the plugin installation and tool availability.
 
 ## Key Files
 
@@ -23,7 +25,8 @@ brew install hashicorp/tap/terraform hashicorp/tap/terraform-ls \
 |------|---------|
 | `.lsp.json` | terraform-ls LSP configuration |
 | `hooks/hooks.json` | 17 automated development hooks |
-| `commands/setup.md` | `/setup` command definition |
+| `.claude/commands/setup.md` | `/setup` command definition |
+| `.claude/commands/validate.md` | `/validate` command definition |
 | `.claude-plugin/plugin.json` | Plugin metadata |
 
 ## Hook System

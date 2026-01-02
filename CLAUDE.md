@@ -31,29 +31,40 @@ Run `/validate` to verify the plugin installation and tool availability.
 
 ## Hook System
 
-All hooks trigger `afterWrite`. Hooks use `command -v` checks to skip gracefully when optional tools aren't installed.
+All hooks trigger on `PostToolUse` after `Write|Edit` operations. Hooks use `command -v` checks to skip gracefully when optional tools aren't installed.
 
 **Hook categories:**
-- **Core** (`**/*.tf`): format, validate, init check, plan hint
-- **Linting** (`**/*.tf`): tflint, todo/fixme detection
-- **Security** (`**/*.tf`): trivy, checkov, sensitive value detection
-- **Variables** (`**/*.tfvars`): format, sensitive check
-- **Terragrunt** (`**/terragrunt.hcl`): format, validate
-- **Hints** (`**/main.tf`, `**/variables.tf`): docs, cost, provider upgrade suggestions
+- **Core** (`.tf`): format, validate, init check, plan hint
+- **Linting** (`.tf`): tflint, todo/fixme detection
+- **Security** (`.tf`): trivy, checkov, sensitive value detection
+- **Variables** (`.tfvars`): format, sensitive check
+- **Terragrunt** (`terragrunt.hcl`): format, validate
+- **Hints** (`main.tf`, `variables.tf`): docs, cost, provider upgrade suggestions
 
 ## When Modifying Hooks
 
-Edit `hooks/hooks.json`. Each hook follows this pattern:
+Edit `hooks/hooks.json`. The hooks use Claude Code's standard event-based format:
 
 ```json
 {
-    "name": "hook-name",
-    "event": "afterWrite",
-    "hooks": [{ "type": "command", "command": "..." }],
-    "matcher": "**/*.tf"
+    "hooks": {
+        "PostToolUse": [
+            {
+                "matcher": "Write|Edit",
+                "hooks": [{ "type": "command", "command": "..." }],
+                "conditions": { "fileExtensions": [".tf"] }
+            }
+        ]
+    }
 }
 ```
 
+**Key fields:**
+- `matcher`: Tool name pattern (e.g., `Write|Edit` for file operations)
+- `conditions.fileExtensions`: File types to match (e.g., `[".tf", ".tfvars"]`)
+- `conditions.pathPatterns`: Path globs for specific files (e.g., `["**/main.tf"]`)
+
+**Best practices:**
 - Use `|| true` to prevent hook failures from blocking writes
 - Use `head -N` to limit output verbosity
 - Use `command -v tool >/dev/null &&` for optional tool dependencies

@@ -1,40 +1,84 @@
-# CLAUDE.md (project context)
+# CLAUDE.md
 
-This repository is a **template** for building Claude Code automations and MCP servers.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Repo goals
+## Project Overview
 
-- Be easy to fork.
-- Provide a sane default MCP server in TypeScript.
-- Provide examples of Claude Code commands and hooks.
+A Claude Code plugin providing Terraform development support through terraform-ls LSP integration and 17 automated hooks for code quality, security, and infrastructure validation.
 
-## Key files
+## Setup
 
-- `.mcp.json`: Claude Code MCP server configuration (project-scoped).
-- `.claude/settings.json`: Hook configuration.
-- `.claude/commands/`: Custom commands that show up as `/...`.
-- `.claude/hooks/`: Hook scripts.
-- `src/index.ts`: MCP server entrypoint.
+Run `/setup` to install all required tools, or manually:
 
-## Development conventions
+```bash
+# macOS (Homebrew)
+brew tap hashicorp/tap
+brew install hashicorp/tap/terraform hashicorp/tap/terraform-ls \
+             tflint tfsec checkov terraform-docs infracost terragrunt
+```
 
-- Prefer minimal diffs.
-- Keep scripts safe and portable.
-- Keep documentation in sync (README + skills files).
+## Key Files
 
-## When adding tools
+| File | Purpose |
+|------|---------|
+| `.lsp.json` | terraform-ls LSP configuration |
+| `hooks/hooks.json` | 17 automated development hooks |
+| `commands/setup.md` | `/setup` command definition |
+| `.claude-plugin/plugin.json` | Plugin metadata |
 
-- Use `zod` schemas.
-- Return text via `{ content: [{ type: "text", text: "..." }] }`.
-- Avoid side effects by default; require explicit user intent for destructive operations.
+## Hook System
 
-## When adding hooks
+All hooks trigger `afterWrite`. Hooks use `command -v` checks to skip gracefully when optional tools aren't installed.
 
-- Hooks are configured in `.claude/settings.json`.
-- Keep hooks fast and deterministic.
-- Prefer blocking only high-confidence dangerous operations.
+**Hook categories:**
+- **Core** (`**/*.tf`): format, validate, init check, plan hint
+- **Linting** (`**/*.tf`): tflint, todo/fixme detection
+- **Security** (`**/*.tf`): trivy, checkov, sensitive value detection
+- **Variables** (`**/*.tfvars`): format, sensitive check
+- **Terragrunt** (`**/terragrunt.hcl`): format, validate
+- **Hints** (`**/main.tf`, `**/variables.tf`): docs, cost, provider upgrade suggestions
 
-Docs:
-- Hooks: https://code.claude.com/docs/en/hooks
-- Slash commands: https://code.claude.com/docs/en/slash-commands
-- MCP: https://code.claude.com/docs/en/mcp
+## When Modifying Hooks
+
+Edit `hooks/hooks.json`. Each hook follows this pattern:
+
+```json
+{
+    "name": "hook-name",
+    "event": "afterWrite",
+    "hooks": [{ "type": "command", "command": "..." }],
+    "matcher": "**/*.tf"
+}
+```
+
+- Use `|| true` to prevent hook failures from blocking writes
+- Use `head -N` to limit output verbosity
+- Use `command -v tool >/dev/null &&` for optional tool dependencies
+- Use `cd "$(dirname "$CLAUDE_FILE_PATH")"` for directory-scoped commands
+
+## When Modifying LSP Config
+
+Edit `.lsp.json`. The `extensionToLanguage` map controls which files use the LSP:
+- `.tf` files map to `terraform` language server
+- `.tfvars` files map to `terraform-vars` language server
+
+## Terraform-Specific Guidance
+
+### Directory Structure
+Terraform validation and init require working in the correct directory. Hooks use `cd "$(dirname "$CLAUDE_FILE_PATH")"` to ensure commands run in the module directory.
+
+### Provider Initialization
+Many terraform commands require `terraform init` first. The `terraform-init-check` hook warns when `.terraform` directory is missing.
+
+### Security Scanning
+The plugin includes three layers of security scanning:
+1. `trivy` - Fast security vulnerability scanning (replaces deprecated tfsec)
+2. `checkov` - Compliance and policy scanning
+3. `terraform-sensitive-check` - Detects hardcoded secrets in config
+
+## Conventions
+
+- Prefer minimal diffs
+- Keep hooks fast (use `--compact`, limit output with `head`)
+- Documentation changes: update both README.md and commands/setup.md if relevant
+- Test hooks manually before committing: run the command directly on a `.tf` file

@@ -1,127 +1,263 @@
-# claude-plugin-template
+# terraform-lsp
 
-A ready-to-fork template for building a **Claude Code “plugin”** using:
+A Claude Code plugin providing comprehensive Terraform development support through:
 
-- **Claude Code project assets**: `.claude/commands`, `.claude/hooks`, `.claude/settings.json`
-- **MCP server** (Model Context Protocol) in **TypeScript** using stdio transport
-- **Team automation** in `.github/` (CI, templates, Copilot prompts/instructions)
+- **terraform-ls LSP** integration for IDE-like features
+- **17 automated hooks** for code quality, security, and validation
+- **Terraform tool ecosystem** integration (tflint, tfsec, checkov, etc.)
 
-## Quickstart
-
-```bash
-npm install
-npm run typecheck
-npm run build
-```
-
-Run the MCP server locally:
+## Quick Setup
 
 ```bash
-npm run dev
-# or
-npm run start
+# Run the setup command (after installing the plugin)
+/setup
 ```
 
-## Fork checklist (rename it once)
-
-- Rename the package in `package.json` and the server name/version in `src/index.ts`.
-- Update the `.mcp.json` server key (`mcpServers.<name>`) to match.
-
-## Using with Claude Code (recommended)
-
-1) Build the server:
+Or manually:
 
 ```bash
-npm run build
+# macOS (Homebrew)
+brew tap hashicorp/tap
+brew install hashicorp/tap/terraform hashicorp/tap/terraform-ls \
+             tflint tfsec checkov terraform-docs infracost terragrunt
 ```
 
-2) Ensure `.mcp.json` exists at repo root (it does in this template):
+## Features
+
+### LSP Integration
+
+The plugin configures terraform-ls for Claude Code via `.lsp.json`:
 
 ```json
 {
-  "mcpServers": {
-    "claude-plugin-template": {
-      "type": "stdio",
-      "command": "node",
-      "args": ["dist/index.js"],
-      "env": {}
+    "terraform": {
+        "command": "terraform-ls",
+        "args": ["serve"],
+        "extensionToLanguage": {
+            ".tf": "terraform",
+            ".tfvars": "terraform-vars"
+        },
+        "transport": "stdio"
     }
-  }
 }
 ```
 
-3) Add/enable the MCP server in Claude Code.
+**Capabilities:**
+- Go to definition / references
+- Hover documentation
+- Code completion for resources, data sources, variables
+- Module navigation and IntelliSense
+- Real-time diagnostics
 
-If you use the CLI, the flow is typically:
+### Automated Hooks
+
+All hooks run `afterWrite` and are configured in `hooks/hooks.json`.
+
+#### Core Terraform Hooks
+
+| Hook | Trigger | Description |
+|------|---------|-------------|
+| `terraform-fmt-on-edit` | `**/*.tf` | Auto-format with `terraform fmt` |
+| `terraform-validate-on-edit` | `**/*.tf` | Validate configuration syntax |
+| `terraform-init-check` | `**/*.tf` | Warn if `terraform init` is required |
+| `terraform-plan-hint` | `**/main.tf` | Suggest running `terraform plan` |
+
+#### Linting & Quality
+
+| Hook | Trigger | Tool Required | Description |
+|------|---------|---------------|-------------|
+| `tflint-on-edit` | `**/*.tf` | `tflint` | Best practices and provider-specific linting |
+| `terraform-todo-fixme` | `**/*.tf` | - | Surface TODO/FIXME/XXX/HACK comments |
+
+#### Security Scanning
+
+| Hook | Trigger | Tool Required | Description |
+|------|---------|---------------|-------------|
+| `trivy-on-edit` | `**/*.tf` | `trivy` | Security vulnerability scanning (replaces tfsec) |
+| `checkov-on-edit` | `**/*.tf` | `checkov` | Compliance and policy scanning |
+| `terraform-sensitive-check` | `**/*.tf` | - | Detect hardcoded secrets |
+
+#### Variable Files
+
+| Hook | Trigger | Description |
+|------|---------|-------------|
+| `tfvars-fmt-on-edit` | `**/*.tfvars` | Auto-format variable files |
+| `tfvars-sensitive-check` | `**/*.tfvars` | Warn about sensitive values |
+
+#### Terragrunt Support
+
+| Hook | Trigger | Tool Required | Description |
+|------|---------|---------------|-------------|
+| `terragrunt-fmt-on-edit` | `**/terragrunt.hcl` | `terragrunt` | Format Terragrunt files |
+| `terragrunt-validate` | `**/terragrunt.hcl` | `terragrunt` | Validate Terragrunt config |
+
+#### Contextual Hints
+
+| Hook | Trigger | Description |
+|------|---------|-------------|
+| `terraform-docs-hint` | `**/variables.tf` | Suggest documentation update |
+| `terraform-cost-hint` | `**/main.tf` | Suggest cost estimation with infracost |
+| `terraform-lock-outdated` | `**/.terraform.lock.hcl` | Suggest provider upgrade |
+
+#### Other
+
+| Hook | Trigger | Description |
+|------|---------|-------------|
+| `markdown-lint-on-edit` | `**/*.md` | Lint markdown files |
+
+## Required Tools
+
+### Core (HashiCorp)
+
+| Tool | Installation | Purpose |
+|------|--------------|---------|
+| `terraform` | `brew install hashicorp/tap/terraform` | Infrastructure provisioning |
+| `terraform-ls` | `brew install hashicorp/tap/terraform-ls` | LSP server |
+
+### Recommended Linting & Security
+
+| Tool | Installation | Purpose |
+|------|--------------|---------|
+| `tflint` | `brew install tflint` | Terraform linter |
+| `trivy` | `brew install trivy` | Security scanner (replaces tfsec) |
+| `checkov` | `pip install checkov` | Compliance scanner |
+
+### Optional Utilities
+
+| Tool | Installation | Purpose |
+|------|--------------|---------|
+| `terraform-docs` | `brew install terraform-docs` | Documentation generator |
+| `infracost` | `brew install infracost` | Cost estimation |
+| `terragrunt` | `brew install terragrunt` | Multi-environment management |
+
+## Commands
+
+### `/setup`
+
+Interactive setup wizard for configuring the complete Terraform development environment.
+
+**What it does:**
+
+1. **Verifies Terraform installation** - Checks `terraform` CLI is available
+2. **Installs terraform-ls** - LSP server for IDE features
+3. **Installs linting tools** - TFLint with provider plugins
+4. **Installs security scanners** - tfsec and checkov
+5. **Validates LSP config** - Confirms `.lsp.json` is correct
+6. **Initializes TFLint config** - Sets up `.tflint.hcl` (if needed)
+7. **Verifies hooks** - Confirms hooks are properly loaded
+
+**Usage:**
 
 ```bash
-claude mcp add claude-plugin-template -- node dist/index.js
-claude mcp list
+/setup
 ```
 
-Docs: https://code.claude.com/docs/en/mcp
-
-## Using with Claude Desktop
-
-Claude Desktop MCP servers are typically configured in `claude_desktop_config.json`.
-Common location (macOS): `~/Library/Application Support/Claude/claude_desktop_config.json`.
-Docs: https://modelcontextprotocol.io/docs/develop/connect-local-servers
-
-## What’s included
-
-### 1) MCP server (`src/index.ts`)
-
-This template exposes:
-- Tool: `hello({ name })` → returns “Hello, <name>!”
-- Resource: `template://readme`
-
-Add more tools/resources in `src/index.ts`.
-
-### 2) Claude Code commands (`.claude/commands/*`)
-
-Examples included:
-- `/setup` – install + build sanity check
-- `/mcp [dev|build|start]` – run the MCP server
-- `/github:pr-review <owner/repo#PR>` – review a PR with `gh`
-
-Reminder: nested folders create namespaces, e.g. `.claude/commands/github/pr-review.md` ⇒ `/github:pr-review`.
-Docs: https://code.claude.com/docs/en/slash-commands
-
-### 3) Claude Code hooks (`.claude/settings.json` + `.claude/hooks/*`)
-
-This template includes a minimal **PreToolUse** Bash guard hook that blocks obviously-dangerous shell commands.
-Docs: https://code.claude.com/docs/en/hooks
-
-### 4) “Skills” (`skills/*`)
-
-Put durable team guidance here: conventions, how-to, runbooks.
-
-### 5) GitHub automation (`.github/*`)
-
-- CI (`.github/workflows/ci.yml`) runs `npm ci`, `typecheck`, `build`.
-- Issue templates + PR template.
-- Copilot instructions and reusable prompts.
-
-## Developing new features
-
-### Add a new MCP tool
-
-1) Add `server.tool(...)` in `src/index.ts`.
-2) Run:
+**Quick install command** (macOS):
 
 ```bash
-npm run typecheck
-npm run build
+brew tap hashicorp/tap && \
+brew install hashicorp/tap/terraform hashicorp/tap/terraform-ls \
+             tflint tfsec checkov terraform-docs infracost terragrunt
 ```
 
-### Add a new slash command
+## Configuration
 
-Create: `.claude/commands/<name>.md`
+### .tflint.hcl
 
-Use YAML frontmatter to set `description` and restrict tools via `allowed-tools`.
+Initialize TFLint for your cloud provider:
 
-## Security checklist
+```bash
+# Create config
+cat > .tflint.hcl << 'EOF'
+plugin "terraform" {
+  enabled = true
+  preset  = "recommended"
+}
 
-- Never commit tokens or API keys.
-- Prefer `env` entries in `.mcp.json` and local overrides in `.claude/settings.local.json`.
-- Keep hooks fail-open unless you’re confident about payload compatibility.
+plugin "aws" {
+  enabled = true
+  version = "0.31.0"
+  source  = "github.com/terraform-linters/tflint-ruleset-aws"
+}
+EOF
+
+# Install plugins
+tflint --init
+```
+
+### Customizing Hooks
+
+Edit `hooks/hooks.json` to:
+- Disable hooks by removing entries
+- Adjust output limits (`head -N`)
+- Modify matchers for different file patterns
+- Add project-specific hooks
+
+Example - disable a hook:
+```json
+{
+    "name": "checkov-on-edit",
+    "enabled": false,
+    ...
+}
+```
+
+## Project Structure
+
+```
+terraform-lsp/
+├── .claude-plugin/
+│   └── plugin.json           # Plugin metadata
+├── .lsp.json                  # terraform-ls configuration
+├── commands/
+│   └── setup.md              # /setup command
+├── hooks/
+│   └── hooks.json            # 17 automated hooks
+├── CLAUDE.md                  # Project instructions
+└── README.md                  # This file
+```
+
+## Troubleshooting
+
+### terraform-ls not starting
+
+1. Ensure `.tf` files exist in project root
+2. Run `terraform init` to initialize providers
+3. Verify installation: `terraform-ls --version`
+4. Check LSP config: `cat .lsp.json`
+
+### terraform validate fails
+
+Initialize the working directory first:
+```bash
+terraform init
+```
+
+### tflint errors
+
+Initialize and update plugins:
+```bash
+tflint --init
+tflint --init --upgrade
+```
+
+### trivy/checkov not detecting issues
+
+1. Verify scanning correct directory
+2. Update tools: `brew upgrade trivy checkov`
+3. Check for exclusion patterns
+4. For trivy: ensure `trivy config` (not `trivy fs`) for IaC scanning
+
+### Hooks not triggering
+
+1. Verify hooks are loaded: `cat hooks/hooks.json`
+2. Check file patterns match your structure
+3. Ensure required tools are installed (`command -v tflint`)
+
+### Too much output
+
+Reduce `head -N` values in hooks.json for less verbose output.
+
+## License
+
+MIT

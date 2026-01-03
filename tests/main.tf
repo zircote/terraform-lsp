@@ -1,3 +1,4 @@
+# Hook test
 # Test Terraform Configuration
 # This file validates terraform-lsp plugin hooks and LSP functionality
 

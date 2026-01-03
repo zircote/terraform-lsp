@@ -192,18 +192,6 @@
                 "conditions": {
                     "pathPatterns": ["**/.terraform.lock.hcl"]
                 }
-            },
-            {
-                "matcher": "Write|Edit",
-                "hooks": [
-                    {
-                        "type": "command",
-                        "command": "command -v markdownlint >/dev/null && markdownlint \"$CLAUDE_FILE_PATH\" 2>&1 | head -20 || true"
-                    }
-                ],
-                "conditions": {
-                    "fileExtensions": [".md"]
-                }
             }
         ]
     }
